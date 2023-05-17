@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+    echo 'Too many/few arguments, expecting one' >&2
+    exit 1
+fi
+
+case $1 in
+    start)
+        docker-compose down && docker-compose up -d ;;
+    restart)
+        docker-compose restart ;;
+    stop)
+        docker-compose down --remove-orphans ;;
+    mongodb)
+        set -o allexport
+        source .env
+        set +o allexport
+        docker-compose exec -it mongodb mongosh $MONGO_ADMIN_DATABASE -u $MONGO_ROOT_USERNAME -p $MONGO_ROOT_PASSWORD ;;
+    *)
+        # The wrong first argument.
+        echo 'Expected "start", "restart", "stop", "mongodb", or "cassandra"' >&2
+        exit 1
+esac

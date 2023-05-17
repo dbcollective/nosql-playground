@@ -10,36 +10,35 @@ services:
     env_file:
       - ./.env
     ports:
-      - 27017:27017
+      - 27017
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb:27017/test --quiet
       interval: 30s
       timeout: 10s
       retries: 3
     restart: unless-stopped
     volumes:
       - ./mongodb/data:/data/db
-      - ./mongodb/entrypoint:/docker-entrypoint-initdb.d
+      - ./mongodb/entrypoint/:/docker-entrypoint-initdb.d/:ro
   mongo-express:
-    image: mongo-express
+    image: mongo-express:latest
     container_name: mongo-express
     environment:
-      - ME_CONFIG_MONGODB_SERVER=mongodb
-      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass12345
-      - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+        ME_CONFIG_MONGODB_SERVER: mongodb
+        ME_CONFIG_MONGODB_ENABLE_ADMIN: true
+        ME_CONFIG_MONGODB_AUTH_DATABASE: ${MONGO_ADMIN_DATABASE}
+        ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+        ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+        ME_CONFIG_BASICAUTH_USERNAME: ${ME_BASICAUTH_USERNAME:-mongo}
+        ME_CONFIG_BASICAUTH_PASSWORD: ${ME_BASICAUTH_PASSWORD:-mongo}
     volumes:
       - ./mongodb/data:/data/db
     depends_on:
       - mongodb
-    networks:
-      - mongodb_network
     ports:
-      - 8081:8081
+      - ${ME_HOST_PORT:-8081}:8081
     healthcheck:
-      test:  wget --quiet --tries=3 --spider http://admin:admin123@10.10.10.60:8081 || exit 1
+      test:  wget --quiet --tries=3 --spider http://${MONGO_USER}:${MONGO_PASSWORD}@mongo-express:8081 || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
