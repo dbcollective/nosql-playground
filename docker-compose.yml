@@ -3,6 +3,7 @@ services:
   mongodb:
     container_name: mongodb
     image: mongo:latest
+    hostname: mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
@@ -13,8 +14,8 @@ services:
       - 27017
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb:27017/test --quiet
-      interval: 30s
-      timeout: 10s
+      interval: 1s
+      timeout: 3s
       retries: 3
     restart: unless-stopped
     volumes:
@@ -43,3 +44,59 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+  cassandra:
+    container_name: cassandra
+    image: cassandra:latest
+    hostname: cassandra
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME}
+    env_file:
+      - ./.env
+    ports:
+      - 9042
+    healthcheck:
+      test: ["CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces"]
+      interval: 1s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    volumes:
+      - ./cassandra/data:/var/lib/cassandra
+      - ./cassandra/entrypoint/:/docker-entrypoint-initdb.d/:ro
+  redis:
+    container_name: redis
+    image: redis:latest
+    hostname: redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    env_file:
+      - ./.env
+    ports:
+      - 6379
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    volumes:
+      - ./redis/data:/data
+  es:
+    container_name: elasticsearch
+    image: elasticsearch:8.2.2
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      xpack.security.enabled: false
+    volumes:
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+    ports:
+      - 9200
+  kibana:
+    container_name: kibana
+    image: kibana:8.2.2
+    ports:
+      - target: 5601
+        published: 5601
+    depends_on:
+      - es

@@ -17,8 +17,12 @@ case $1 in
         source .env
         set +o allexport
         docker-compose exec -it mongodb mongosh $MONGO_ADMIN_DATABASE -u $MONGO_ROOT_USERNAME -p $MONGO_ROOT_PASSWORD ;;
+    cassandra)
+        docker-compose exec -it cassandra cqlsh ;;
+    redis)
+        docker-compose exec -it redis redis-cli ;;
     *)
         # The wrong first argument.
-        echo 'Expected "start", "restart", "stop", "mongodb", or "cassandra"' >&2
+        echo 'Expected "start", "restart", "stop", "mongodb", "cassandra" or "redis"' >&2
         exit 1
 esac
